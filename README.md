@@ -1,3 +1,6 @@
+
+---
+
 # 🛫 Flight Performance & Delay Decision System
 
 ## **Project Overview**
@@ -36,9 +39,10 @@ The aviation industry is one of the largest and most data-intensive sectors glob
 5. [Data Modeling & dbt](#data-modeling--dbt)
 6. [Dashboards & KPIs](#dashboards--kpis)
 7. [How to Run](#how-to-run)
-8. [Code Snippets](#code-snippets)
-9. [Business Insights](#business-insights)
-10. [Author & License](#author--license)
+8. [Configuration & Setup](#configuration--setup)
+9. [Code Snippets](#code-snippets)
+10. [Business Insights](#business-insights)
+11. [Author & License](#author--license)
 
 ---
 
@@ -337,39 +341,74 @@ WHERE YEAR(full_date) = 2024
 
 ## **How to Run**
 
-1. Start Docker containers
+### **Quick Start**
 
+1. **Clone the repository**
+```bash
+git clone https://github.com/Abdo-Anwar/flight-analytics-realtime-batch.git
+cd flight-analytics-realtime-batch
+```
+
+2. **Start Docker containers**
 ```bash
 docker compose up -d
 ```
 
-2. Access services:
+3. **Access services:**
 
    * Airflow: `http://localhost:8080` (user: `airflow`, password: `airflow`)
    * Grafana: `http://localhost:3000` (user: `admin`, password: `admin`)
    * Flink Dashboard: `http://localhost:8081`
 
-3. Run batch DAG via Airflow
-
+4. **Run batch DAG via Airflow**
 ```bash
-# Trigger the flight_data_processing DAG
 python sparkJops/import_mysql.py
 ```
 
-4. Start streaming job via Flink
-
+5. **Start streaming job via Flink**
 ```bash
-# Submit Flink streaming job
 docker compose exec jobmanager flink run \
   -py /opt/flink/python_jobs/flights_real_time.py
 ```
 
-**Environment Variables Required:**
+---
+
+## **Configuration & Setup**
+
+### **Infrastructure Setup Guide**
+
+For detailed step-by-step instructions on setting up the complete infrastructure including:
+
+* **AWS S3 Configuration** - Bucket creation, IAM roles, and access policies
+* **Snowflake Integration** - Warehouse setup, database schemas, and Snowpipe configuration
+* **Spark Configuration** - S3 connectors, checkpointing, and performance tuning
+* **Database Connections** - MySQL, PostgreSQL setup and optimization
+* **Security & Credentials** - Environment variables, secret management, and network security
+
+**📖 Download the Complete Setup Guide:**
+[Flight Analytics - Infrastructure Setup Guide](https://github.com/Abdo-Anwar/flight-analytics-realtime-batch/blob/main/docs/Shared_SIC-GradP-KafkaSpark-S3-Snow_Docm.pdf)
+
+**Minimum Environment Variables:**
 ```bash
+# AWS Configuration
 export AWS_ACCESS_KEY_ID="your_access_key"
 export AWS_SECRET_ACCESS_KEY="your_secret_key"
+export AWS_DEFAULT_REGION="eu-north-1"
+
+# Snowflake Configuration
 export SNOWFLAKE_ACCOUNT="your_account"
+export SNOWFLAKE_USER="your_username"
+export SNOWFLAKE_PASSWORD="your_password"
 export SNOWFLAKE_WAREHOUSE="your_warehouse"
+export SNOWFLAKE_DATABASE="flight_analytics"
+export SNOWFLAKE_SCHEMA="raw"
+
+# Database Configuration
+export MYSQL_HOST="localhost"
+export MYSQL_PORT="3306"
+export MYSQL_USER="root"
+export MYSQL_PASSWORD="your_password"
+export POSTGRES_PASSWORD="airflow"
 ```
 
 ---
