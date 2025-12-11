@@ -1,6 +1,3 @@
-ممتاز! فكرة رائعة. هضيف قسم جديد في الـ README اسمه **Configuration & Setup** أو **Infrastructure Setup** ونحط فيه link للـ PDF/Google Doc اللي معاك. ده هيوفر مساحة في الـ README ويكون organized أكثر.
-
-هنا النسخة النهائية مع الإضافة:
 
 ---
 
