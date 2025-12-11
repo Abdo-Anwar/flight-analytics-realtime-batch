@@ -1,4 +1,17 @@
 
+![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
+![Apache Spark](https://img.shields.io/badge/Apache_Spark-3.3+-orange.svg)
+![Apache Flink](https://img.shields.io/badge/Apache_Flink-1.17+-red.svg)
+![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-3.6-black.svg)
+![dbt](https://img.shields.io/badge/dbt-Core_1.7+-orange.svg)
+![Snowflake](https://img.shields.io/badge/Snowflake-Warehouse-00AEEF.svg)
+![AWS S3](https://img.shields.io/badge/AWS-S3-orange.svg)
+![Airflow](https://img.shields.io/badge/Airflow-2.9+-lightblue.svg)
+![Docker](https://img.shields.io/badge/Docker-Containers-blue.svg)
+![Power BI](https://img.shields.io/badge/PowerBI-Analytics-yellow.svg)
+![Grafana](https://img.shields.io/badge/Grafana-Real_Time-orange.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+
 ---
 
 # 🛫 Flight Performance & Delay Decision System
