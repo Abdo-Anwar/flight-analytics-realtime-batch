@@ -110,7 +110,8 @@
  ![System Architecture photo](images/third.png)
 ----------
 ## Video Demo 
-- [**Watch the Demo!**](https://drive.google.com/file/d/1ZIMkiO6oI8pYtKiDrz6ulDrcb4gHyuyV/view)
+- [**Batch Pipleline Demo!**](https://drive.google.com/file/d/12c-LKxtjz0Ec_E_pWlF4yNFMsS0A9Ftn/view?usp=sharing)
+- [**Streaming Pipleline Demo!**](https://drive.google.com/file/d/1nOydJw4a6fAl49vQyVWYmv6L1MYq_Tg6/view?usp=sharing)
 ----------
 ## How to Run
 -----------
