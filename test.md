@@ -102,13 +102,54 @@ The system contains **two parallel pipelines**:
   5. **dbt** builds dimensional models for analytics
   6. Power BI dashboards visualize business KPIs
 
-**Code placeholder:**
+**Example Spark Transformation:**
 
 ```python
-# INSERT spark consumer.py / batch transformation snippet here
+from pyspark.sql import SparkSession
+import pyspark.sql.functions as F
+
+# Initialize Spark with Delta Lake and S3 support
+spark = SparkSession.builder \
+    .appName("KafkaSparkConsumer") \
+    .config("spark.jars.packages", 
+            "org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,"
+            "io.delta:delta-core_2.12:2.2.0") \
+    .config("spark.hadoop.fs.s3a.access.key", "YOUR_ACCESS_KEY") \
+    .config("spark.hadoop.fs.s3a.secret.key", "YOUR_SECRET_KEY") \
+    .getOrCreate()
+
+# Read from Kafka topic
+df_raw = spark.readStream.format("kafka") \
+    .option("kafka.bootstrap.servers", "kafka:9092") \
+    .option("subscribe", "mysql-server.GP.flights") \
+    .load()
+
+# Parse JSON and extract payload
+df_parsed = df_raw.select(F.col("value").cast("string").alias("value")) \
+    .withColumn("jsonData", F.from_json("value", mySchema)) \
+    .select("jsonData.*")
+
+# Extract flight data from payload
+df_flights = df_parsed.select(
+    F.col("payload.id").alias("flight_id"),
+    F.col("payload.origin").alias("origin"),
+    F.col("payload.dest").alias("dest"),
+    F.col("payload.dep_delay").alias("dep_delay"),
+    F.col("payload.arr_delay").alias("arr_delay"),
+    F.col("payload.cancelled").alias("cancelled")
+)
+
+# Write to S3 with checkpointing for fault tolerance
+df_flights.writeStream \
+    .format("parquet") \
+    .option("path", "s3a://kafka-staging-abdelrahman-2025/kafka/flights") \
+    .option("checkpointLocation", "s3a://kafka-staging-abdelrahman-2025/kafka/checkpoints/flights") \
+    .outputMode("append") \
+    .start()
+
+spark.streams.awaitAnyTermination()
 ```
 
----
 
 ## **Streaming Pipeline**
 
@@ -121,9 +162,71 @@ The system contains **two parallel pipelines**:
 
 **Code placeholder:**
 
+**Example Flink Transformation:**
+
 ```python
-# INSERT Flink streaming transformation example here
+from pyflink.table import StreamTableEnvironment
+
+# Create table environment
+tbl_env = StreamTableEnvironment.create(env)
+
+# Define Kafka source table
+tbl_env.execute_sql("""
+    CREATE TABLE flight_events (
+        origin STRING,
+        dest STRING,
+        dep_delay DOUBLE,
+        arr_delay DOUBLE,
+        cancelled DOUBLE,
+        taxi_out DOUBLE,
+        air_time DOUBLE,
+        proctime AS PROCTIME()
+    ) WITH (
+        'connector' = 'kafka',
+        'topic' = 'mysql-server.GP.flights',
+        'properties.bootstrap.servers' = 'kafka:9092',
+        'format' = 'json'
+    )
+""")
+
+# Define PostgreSQL sink for real-time dashboard
+tbl_env.execute_sql("""
+    CREATE TABLE route_performance_pg (
+        window_end TIMESTAMP(3),
+        origin STRING,
+        dest STRING,
+        route STRING,
+        flight_count BIGINT,
+        avg_delay DOUBLE,
+        cancellation_rate DOUBLE,
+        avg_taxi_out DOUBLE,
+        PRIMARY KEY (window_end, route) NOT ENFORCED
+    ) WITH (
+        'connector' = 'jdbc',
+        'url' = 'jdbc:postgresql://postgres:5432/postgres',
+        'table-name' = 'route_performance',
+        'username' = 'airflow',
+        'password' = 'airflow'
+    )
+""")
+
+# Calculate route performance metrics every 30 seconds
+tbl_env.execute_sql("""
+    INSERT INTO route_performance_pg
+    SELECT
+        TUMBLE_END(proctime, INTERVAL '30' second) AS window_end,
+        origin,
+        dest,
+        CONCAT(origin, '-', dest) AS route,
+        COUNT(*) AS flight_count,
+        AVG(COALESCE(arr_delay, 0)) AS avg_delay,
+        SUM(CAST(cancelled AS DOUBLE)) / NULLIF(COUNT(*), 0) * 100 AS cancellation_rate,
+        AVG(COALESCE(taxi_out, 0)) AS avg_taxi_out
+    FROM flight_events
+    GROUP BY origin, dest, TUMBLE(proctime, INTERVAL '30' second)
+""")
 ```
+
 
 ---
 
@@ -194,45 +297,36 @@ docker compose exec flink-jobmanager flink run /opt/flink_jobs/streaming_job.py
 ## **Code Snippets Placeholder**
 
 ```sql
--- Example dbt model: fact_flights
+-- Example dbt model: cleaned_flights
 {{ config(materialized='table') }}
 
-SELECT 
-    fl_date,
-    carrier,
-    origin,
-    dest,
-    dep_delay,
-    arr_delay,
-    cancelled,
-    diverted
-FROM {{ source('raw', 'flight_data') }}
-WHERE cancelled = 0
+WITH cleaned_flights AS (
+    SELECT
+        id AS flight_id,
+        TO_DATE(fl_date::VARCHAR, 'YYYYMMDD') AS flight_date,
+        op_unique_carrier AS airline_code,
+        origin,
+        dest,
+        dep_delay,
+        arr_delay,
+        cancelled,
+        diverted,
+        distance,
+        air_time,
+        taxi_out + taxi_in AS total_taxi_time,
+        CASE 
+            WHEN arr_delay > 15 THEN 'DELAYED'
+            WHEN arr_delay <= 15 AND arr_delay >= -15 THEN 'ON_TIME'
+            ELSE 'EARLY'
+        END AS arrival_performance
+    FROM {{ source('raw', 'flight_data') }}
+    WHERE cancelled = 0
+)
+
+SELECT * FROM cleaned_flights
 ```
 
-```python
-# Example Flink streaming transformation
-from pyflink.datastream import StreamExecutionEnvironment
-from pyflink.table import StreamTableEnvironment
 
-env = StreamExecutionEnvironment.get_execution_environment()
-t_env = StreamTableEnvironment.create(env)
-
-# Define source table
-t_env.execute_sql("""
-    CREATE TABLE flight_events (
-        flight_id STRING,
-        event_time TIMESTAMP(3),
-        delay_minutes INT,
-        event_type STRING
-    ) WITH (
-        'connector' = 'kafka',
-        'topic' = 'flight-updates',
-        'properties.bootstrap.servers' = 'localhost:9092',
-        'format' = 'json'
-    )
-""")
-```
 
 ---
 
